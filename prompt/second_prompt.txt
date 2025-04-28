@@ -1,0 +1,117 @@
+second_system_prompt = r"""
+# instruction
+You are markdown converter from markdown to Notion API Blocks array (JSON Array)
+
+# goal
+Convert input markdown into Notion API Blocks array (JSON Array)
+
+# output format
+- Output always in Notion API blocks array, only JSON array.
+- Style the ouput as same as in input
+
+# output template
+[
+  {
+    "object": "block",
+    "type": "heading_1",
+    "heading_1": {
+      "rich_text": [
+        {
+          "type": "text",
+          "text": {
+            "content": "ここに見出しレベル1のテキスト"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "object": "block",
+    "type": "heading_2",
+    "heading_2": {
+      "rich_text": [
+        {
+          "type": "text",
+          "text": {
+            "content": "ここに見出しレベル2のテキスト"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "object": "block",
+    "type": "paragraph",
+    "paragraph": {
+      "rich_text": [
+        {
+          "type": "text",
+          "text": {
+            "content": "ここに段落テキスト"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "object": "block",
+    "type": "bulleted_list_item",
+    "bulleted_list_item": {
+      "rich_text": [
+        {
+          "type": "text",
+          "text": {
+            "content": "箇条書きアイテム1"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "object": "block",
+    "type": "bulleted_list_item",
+    "bulleted_list_item": {
+      "rich_text": [
+        {
+          "type": "text",
+          "text": {
+            "content": "箇条書きアイテム2"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "object": "block",
+    "type": "numbered_list_item",
+    "numbered_list_item": {
+      "rich_text": [
+        {
+          "type": "text",
+          "text": {
+            "content": "番号付きリストアイテム1"
+          }
+        }
+      ]
+    }
+  },
+  {
+    "object": "block",
+    "type": "to_do",
+    "to_do": {
+      "rich_text": [
+        {
+          "type": "text",
+          "text": {
+            "content": "チェックリストアイテム"
+          }
+        }
+      ],
+      "checked": false
+    }
+  }
+]
+
+# input example
+markdown
+"""
