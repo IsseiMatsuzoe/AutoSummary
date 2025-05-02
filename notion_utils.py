@@ -9,8 +9,6 @@ import json
 
 
 def get_database_items_id(Notion_API_Key, Database_Id, X_Days_Ago=None):
-
-
     # ヘッダーを設定
     headers = {
         "Authorization": f"Bearer {Notion_API_Key}",
@@ -26,7 +24,17 @@ def get_database_items_id(Notion_API_Key, Database_Id, X_Days_Ago=None):
         )
         
         # レスポンスを取得
-        response.raise_for_status()  # エラーチェック
+        if response.status_code == 401:
+            print(f"認証エラー: Notion APIキーが無効または権限が不足しています。APIキーを確認してください。")
+            return pd.DataFrame()
+        elif response.status_code == 400:
+            print(f"リクエストエラー: データベースID '{Database_Id}' が無効です。データベースIDを確認してください。")
+            return pd.DataFrame()
+        elif response.status_code == 404:
+            print(f"リソースが見つかりません: データベースID '{Database_Id}' が存在しないか、アクセス権限がありません。")
+            return pd.DataFrame()
+        
+        response.raise_for_status()  # その他のエラーチェック
         data = response.json()
         
         # 各ページの情報を辞書に追加
@@ -39,16 +47,32 @@ def get_database_items_id(Notion_API_Key, Database_Id, X_Days_Ago=None):
             pages = []
             
             for result in results:
-                
-                page_info = {
-                    'title': result.get('properties').get('タイトル').get('title')[0].get('plain_text'),
-                    'page_id': result.get('id'),
-                    'created_time': result.get('created_time')
-                }
-                pages.append(page_info)
+                try:
+                    # プロパティの存在チェック
+                    properties = result.get('properties', {})
+                    title_property = properties.get('Title', {})
+                    title_array = title_property.get('title', [])
+                    
+                    # タイトルが存在するかチェック
+                    if not title_array:
+                        print(f"警告: ページID {result.get('id')} にタイトルが設定されていません")
+                        title_text = "タイトルなし"
+                    else:
+                        title_text = title_array[0].get('plain_text', 'タイトルなし')
+                    
+                    page_info = {
+                        'title': title_text,
+                        'page_id': result.get('id'),
+                        'created_time': result.get('created_time')
+                    }
+                    pages.append(page_info)
+                except Exception as e:
+                    print(f"警告: ページID {result.get('id')} の処理中にエラーが発生しました: {e}")
+                    continue
 
     except requests.exceptions.RequestException as e:
-        print(f"APIリクエストエラー: {e}")
+        print(f"データベースID取得：APIリクエストエラー: {e}")
+        print(f"エラーの詳細: {response.text if 'response' in locals() else 'レスポンスなし'}")
         return pd.DataFrame()
     except Exception as e:
         print(f"予期せぬエラー: {e}")
@@ -58,7 +82,7 @@ def get_database_items_id(Notion_API_Key, Database_Id, X_Days_Ago=None):
     df = pd.DataFrame(pages)
 
     # 日付でフィルタリング
-    if X_Days_Ago is not None:
+    if X_Days_Ago is not None and not df.empty:
         current_date = pd.Timestamp.now(tz='UTC')
         x_days_ago = current_date - pd.Timedelta(days=X_Days_Ago)
         df = df[pd.to_datetime(df['created_time']).between(x_days_ago, current_date)]
@@ -130,7 +154,7 @@ def post_page(notion_api_key, database_id, blocks_json):
     data = {
         "parent": {"database_id": database_id},
         "properties": {
-            "タイトル": {
+            "Title": {
                 "title": [
                     {
                         "text": {
