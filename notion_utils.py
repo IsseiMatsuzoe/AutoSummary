@@ -162,6 +162,11 @@ def post_page(notion_api_key, database_id, blocks_json):
                         }
                     }
                 ]
+            },
+            "From": {
+                "select": {
+                    "name": "openAI"
+                }
             }
         },
         "children": json.loads(blocks_json)
