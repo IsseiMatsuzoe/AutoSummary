@@ -167,7 +167,17 @@ def post_page(notion_api_key, database_id, blocks_json):
                 "select": {
                     "name": "openAI"
                 }
-            }
+            },
+            "Category": {
+                "select": {
+                    "name": "ProgressReport"
+                }
+            },
+            "Team": {
+                "select": {
+                    "name": "DQC"
+                }
+            },
         },
         "children": json.loads(blocks_json)
     }

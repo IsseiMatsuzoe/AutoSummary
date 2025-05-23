@@ -7,21 +7,21 @@ def suumarize_text(OPENAI_API_KEY, text):
 
     with open("prompt/first_prompt.txt", "r", encoding="utf-8") as f:
         first_system_prompt = f.read()
-
+    print("first_system_prompt: Sent")
     response = client.chat.completions.create(
         model="gpt-4o",
         messages=[
             {"role": "system", "content": first_system_prompt},
             {"role": "user", "content": f"次の文章を要約し,markdownで出力せよ:\n{text}"}
         ],
-        temperature = 0.7
+        temperature = 0.8
     )
-
+    print("first_system_prompt: Received")
     markdown_response = response.choices[0].message.content
 
     with open("prompt/second_prompt.txt", "r", encoding="utf-8") as f:
         second_system_prompt = f.read()
-
+    print("second_system_prompt: Sent")
     response = client.chat.completions.create(
         model = "gpt-4o",
         messages=[
@@ -30,4 +30,6 @@ def suumarize_text(OPENAI_API_KEY, text):
         ],
         temperature = 0.2
     )
+    print("second_system_prompt: Received")
+    print("ChatGPT: Chat End")
     return response.choices[0].message.content
