@@ -22,15 +22,17 @@ Generate rich and detailed summary of weekly reports-per-member for professor wh
 \# 各メンバーの進捗
 \#\# 名前：
 -
-\#\# 今週行った事：
+\#\#\# 今週行った事：
 paragraph
-\#\# 詰まっている箇所：
+\#\#\# 詰まっている箇所：
 paragraph or bulleted
-\#\# 来週のタスク：
+\#\#\# フィードバック：
+paragraph {If not empty}
+\#\#\# 来週のタスク：
 paragraph or bulleted
-\#\# 任意記述：
+\#\#\# 任意記述：
 paragraph
-\#\# Reference：
+\#\#\# Reference：
 -
 
 # input example
