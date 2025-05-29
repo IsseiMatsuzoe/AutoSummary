@@ -139,7 +139,11 @@ def get_database_text(NOTION_API_KEY: str, DB_ID: str, X_DAYS_AGO: int = 7):
     combined_text = "<|DOCUMENT|>\n" + "\n<|DOCUMENT|>\n".join(text_list) + "\n<|DOCUMENT|>"
     return combined_text
 
-def post_page(notion_api_key, database_id, blocks_json):
+def post_page(notion_api_key, database_id, blocks_json, Team:str=None, Category:str=None):
+    """
+    Team: "DQC", "ML", "NetExp", "NetTheory"
+    Category: "ProgressReport", "Note", "Paper"
+    """
 
     blocks_json = blocks_json.replace('```json\n', '').replace('\n```', '')
 
@@ -170,12 +174,12 @@ def post_page(notion_api_key, database_id, blocks_json):
             },
             "Category": {
                 "select": {
-                    "name": "ProgressReport"
+                    "name": Category
                 }
             },
             "Team": {
                 "select": {
-                    "name": "DQC"
+                    "name": Team
                 }
             },
         },

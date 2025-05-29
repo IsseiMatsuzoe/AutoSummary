@@ -1,73 +1,147 @@
-# AutoSummary - Notion進捗レポート自動要約システム
+# AutoSummary
 
-## 概要
-AutoSummaryは、Notionデータベースに保存された研究室の週次進捗レポートを自動的に要約し、新しいページとして保存するシステムです。OpenAI GPT-4を活用して、研究者向けの簡潔で有用な要約を生成します。
+量子情報技術研究グループ向けの進捗要約ツールです。Notion データベースからチームメンバーの Weekly Report を取得し、OpenAI API を使用して要約し、別の Notion データベースに投稿します。
 
-## 主な機能
-- Notionデータベースからの進捗レポート取得（過去7日分）
-  - Notion APIを使用して指定されたデータベースから最新の投稿を取得
-  - 各ページの内容をテキスト形式に変換
-- GPT-4による研究内容の要約生成
-  - カスタマイズ可能なプロンプトテンプレートを使用
-  - 研究内容を理解しやすい形式でマークダウン形式に要約
-- 要約結果のNotion APIブロック形式への変換
-  - マークダウン形式の要約をNotionブロックJSONに変換
-  - Notionページの構造に最適化
-- 新規ページとしての自動保存
-  - 生成された要約を新しいNotionページとして保存
-  - タイトルに日付を自動付与
+## 機能
 
-## 技術スタック
-- Python 3.12
-- OpenAI API (GPT-4)
-  - テキスト要約生成
-  - Notionブロック形式への変換
-- Notion API
-  - データベース操作
-  - ページ作成と更新
-- その他のライブラリ
-  - openai: OpenAI API操作
-  - pandas: データ処理
-  - requests: API通信
-  - python-dotenv: 環境変数管理
-  - datetime: 日付処理
-  - json: JSONデータ処理
-  - os: 環境変数・ファイル操作
+- **進捗データ表示**: 指定されたチームの進捗データを表示
+- **AI 要約**: チームの進捗を自動要約して Notion に投稿
+- **チーム対応**: DQC、ML、NetExp、NetTheory の各チームに対応
+- **対話モード**: CLI で対話的に操作可能
+- **コマンドライン**: 引数指定でバッチ実行可能
 
----
+## セットアップ
 
-# AutoSummary - Notion Progress Report Auto-Summarization System
+### 1. 依存関係のインストール
 
-## Overview
-AutoSummary is a system that automatically summarizes weekly research progress reports stored in a Notion database and saves them as new pages. It utilizes OpenAI GPT-4 to generate concise and useful summaries for researchers.
+```bash
+pip install -r requirements.txt
+```
 
-## Key Features
-- Retrieval of progress reports from Notion database (last 7 days)
-  - Fetches recent posts from specified database using Notion API
-  - Converts page contents to text format
-- Research content summarization using GPT-4
-  - Uses customizable prompt templates
-  - Summarizes research content in markdown format for better understanding
-- Conversion of summaries to Notion API block format
-  - Converts markdown summaries to Notion block JSON
-  - Optimized for Notion page structure
-- Automatic saving as new pages
-  - Saves generated summaries as new Notion pages
-  - Automatically adds date to titles
+### 2. 環境変数の設定
 
-## Tech Stack
-- Python 3.12
-- OpenAI API (GPT-4)
-  - Text summarization generation
-  - Notion block format conversion
-- Notion API
-  - Database operations
-  - Page creation and updates
-- Additional Libraries
-  - openai: OpenAI API operations
-  - pandas: Data processing
-  - requests: API communication
-  - python-dotenv: Environment variable management
-  - datetime: Date handling
-  - json: JSON data processing
-  - os: Environment variables and file operations
+`.env`ファイルを作成し、以下の環境変数を設定してください：
+
+```
+OPENAI_TOKEN=your_openai_api_key
+NOTION_TOKEN=your_notion_integration_token
+NOTION_DB_INPUT=input_database_id
+NOTION_DB_OUTPUT=output_database_id
+```
+
+### 3. Notion データベース ID の設定
+
+`main.py`の`Input_Databse_Id_dict`を実際のデータベース ID に更新してください：
+
+```python
+Input_Databse_Id_dict = {
+    "DQC": "actual_database_id_1",
+    "ML": "actual_database_id_2",
+    "NetExp": "actual_database_id_3",
+    "NetTheory": "actual_database_id_4",
+}
+```
+
+## 使用方法
+
+### 対話モード（推奨）
+
+```bash
+python main.py --interactive
+```
+
+または
+
+```bash
+python main.py -i
+```
+
+対話モードでは以下を順次選択できます：
+
+1. 対象チーム（DQC, ML, NetExp, NetTheory）
+2. 対象期間（何日前からのデータか）
+3. 実行操作（データ表示 or 要約投稿）
+4. カテゴリ（要約投稿の場合：ProgressReport, Note, Paper）
+
+### コマンドライン引数
+
+#### 進捗データを表示
+
+```bash
+python main.py --team DQC --days 7 --action show
+```
+
+#### 要約して Notion に投稿
+
+```bash
+python main.py --team ML --days 14 --action summary --category ProgressReport
+```
+
+### コマンドライン引数一覧
+
+- `--team`: 対象チーム（DQC, ML, NetExp, NetTheory）**必須**
+- `--days`: 何日前からのデータを対象にするか（デフォルト: 7）
+- `--action`: 実行する操作
+  - `show`: 進捗データを表示
+  - `summary`: 要約して Notion に投稿（デフォルト）
+- `--category`: 投稿カテゴリ（ProgressReport, Note, Paper）（デフォルト: ProgressReport）
+- `--interactive`, `-i`: 対話モードで実行
+
+### ヘルプ表示
+
+```bash
+python main.py --help
+```
+
+## 使用例
+
+### 例 1: DQC チームの過去 7 日間のデータを表示
+
+```bash
+python main.py --team DQC --action show
+```
+
+### 例 2: ML チームの過去 14 日間の進捗を要約して Notion に投稿
+
+```bash
+python main.py --team ML --days 14 --action summary --category ProgressReport
+```
+
+### 例 3: 対話モードで全ての選択を行う
+
+```bash
+python main.py -i
+```
+
+## ファイル構成
+
+- `main.py`: メインエントリーポイント（CLI 機能）
+- `notion_utils.py`: Notion API 操作
+- `openai_chat.py`: OpenAI API 操作（要約・変換）
+- `prompt/`: AI 用プロンプトファイル
+  - `first_prompt.txt`: 要約用プロンプト
+  - `second_prompt.txt`: Notion API 形式変換用プロンプト
+
+## エラー対処
+
+### 環境変数エラー
+
+```
+❌ エラー: 環境変数OPENAI_TOKENまたはNOTION_TOKENが設定されていません。
+```
+
+→ `.env`ファイルで環境変数を正しく設定してください。
+
+### データベース ID エラー
+
+```
+❌ {Team}チームの過去{X}日間にデータが見つかりませんでした。
+```
+
+→ データベース ID が正しく設定されているか、対象期間にデータが存在するかを確認してください。
+
+## 注意事項
+
+- OpenAI API の使用料金が発生します
+- Notion API の制限に注意してください
+- テスト用の`.ipynb`ファイルは本システムには不要です
