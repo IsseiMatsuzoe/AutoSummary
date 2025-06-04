@@ -15,22 +15,24 @@ Output_Database_Id = os.getenv("NOTION_DB_OUTPUT")
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 Input_Databse_Id_dict = {
-    "DQC": "1234567890",
-    "ML": "1234567890",
-    "NetExp": "1234567890",
-    "NetTheory": "1234567890",
+    "DQC": "1e656d7a44ed80849205ddfa38bd29f2",
+    "ML": "1e656d7a44ed80849205ddfa38bd29f2",
+    "NetExp": "1e656d7a44ed80849205ddfa38bd29f2",
+    "NetTheory": "1e656d7a44ed80849205ddfa38bd29f2",
 }
 
 def post_summary(Output_Database_Id:str, OpenAI_API_KEY:str, X_DAYS_AGO:int, Team:str, Category:str):
     """指定されたチームの進捗を要約してNotionに投稿"""
-    print(f"🔍 {Team}チームの過去{X_DAYS_AGO}日間のデータを取得中...")
+    print(f"🔍 {Team}チームの{Category}カテゴリの過去{X_DAYS_AGO}日間のデータを取得中...")
     
     generated_page_json = suumarize_text(
         OPENAI_API_KEY=OpenAI_API_KEY,
         text = get_database_text(
             NOTION_API_KEY = Notion_API_Key,
             DB_ID = Input_Databse_Id_dict[Team],
-            X_DAYS_AGO = X_DAYS_AGO
+            X_DAYS_AGO = X_DAYS_AGO,
+            Team = Team,
+            Category = Category
         )
     )
     
@@ -38,18 +40,23 @@ def post_summary(Output_Database_Id:str, OpenAI_API_KEY:str, X_DAYS_AGO:int, Tea
     post_page(Notion_API_Key, Output_Database_Id, generated_page_json, Team=Team, Category=Category)
     print("✅ 完了しました！")
 
-def show_team_progress(Team: str, X_DAYS_AGO: int):
+def show_team_progress(Team: str, X_DAYS_AGO: int, Category: str = None):
     """指定されたチームの進捗データを表示（要約なし）"""
-    print(f"🔍 {Team}チームの過去{X_DAYS_AGO}日間のデータを取得中...")
+    if Category:
+        print(f"🔍 {Team}チームの{Category}カテゴリの過去{X_DAYS_AGO}日間のデータを取得中...")
+    else:
+        print(f"🔍 {Team}チームの過去{X_DAYS_AGO}日間のデータを取得中...")
     
     # データベースからページIDを取得
-    page_data = get_database_items_id(Notion_API_Key, Input_Databse_Id_dict[Team], X_DAYS_AGO)
+    page_data = get_database_items_id(Notion_API_Key, Input_Databse_Id_dict[Team], X_DAYS_AGO, Team, Category)
     
     if page_data.empty:
-        print(f"❌ {Team}チームの過去{X_DAYS_AGO}日間にデータが見つかりませんでした。")
+        category_text = f"の{Category}カテゴリ" if Category else ""
+        print(f"❌ {Team}チーム{category_text}の過去{X_DAYS_AGO}日間にデータが見つかりませんでした。")
         return
     
-    print(f"\n📊 {Team}チームの進捗データ ({len(page_data)}件):")
+    category_text = f" ({Category}カテゴリ)" if Category else ""
+    print(f"\n📊 {Team}チームの進捗データ{category_text} ({len(page_data)}件):")
     print("-" * 50)
     
     for _, row in page_data.iterrows():
@@ -106,26 +113,29 @@ def interactive_mode():
         except ValueError:
             print("❌ 数字を入力してください。")
     
+    # カテゴリ選択（両方の操作で共通）
+    categories = ["ProgressReport", "Note", "Paper", "すべて"]
+    print("\n📂 カテゴリを選択してください:")
+    for i, cat in enumerate(categories, 1):
+        print(f"  {i}. {cat}")
+    
+    while True:
+        try:
+            cat_choice = int(input(f"カテゴリを選択してください (1-{len(categories)}): ")) - 1
+            if 0 <= cat_choice < len(categories):
+                selected_category = categories[cat_choice] if cat_choice < 3 else None
+                break
+            else:
+                print("❌ 無効な選択です。")
+        except ValueError:
+            print("❌ 数字を入力してください。")
+    
     if action_choice == 1:
-        show_team_progress(selected_team, days_ago)
+        show_team_progress(selected_team, days_ago, selected_category)
     else:
-        # カテゴリ選択
-        categories = ["ProgressReport", "Note", "Paper"]
-        print("\n📂 カテゴリを選択してください:")
-        for i, cat in enumerate(categories, 1):
-            print(f"  {i}. {cat}")
-        
-        while True:
-            try:
-                cat_choice = int(input(f"カテゴリを選択してください (1-{len(categories)}): ")) - 1
-                if 0 <= cat_choice < len(categories):
-                    selected_category = categories[cat_choice]
-                    break
-                else:
-                    print("❌ 無効な選択です。")
-            except ValueError:
-                print("❌ 数字を入力してください。")
-        
+        if selected_category is None:
+            print("❌ 要約投稿にはカテゴリの指定が必要です。")
+            return
         post_summary(Output_Database_Id, OPENAI_API_KEY, days_ago, selected_team, selected_category)
 
 def main():
@@ -156,8 +166,12 @@ def main():
         sys.exit(1)
     
     # API キーチェック
-    if not OPENAI_API_KEY or not Notion_API_Key:
-        print("❌ エラー: 環境変数OPENAI_TOKENまたはNOTION_TOKENが設定されていません。")
+    if not Notion_API_Key:
+        print("❌ エラー: 環境変数NOTION_TOKENが設定されていません。")
+        sys.exit(1)
+    
+    if not OPENAI_API_KEY and args.action == "summary":
+        print("❌ エラー: 環境変数OPENAI_TOKENが設定されていません。")
         sys.exit(1)
     
     if not Output_Database_Id and args.action == "summary":
@@ -166,7 +180,7 @@ def main():
     
     # 実行
     if args.action == "show":
-        show_team_progress(args.team, args.days)
+        show_team_progress(args.team, args.days, args.category)
     else:
         post_summary(Output_Database_Id, OPENAI_API_KEY, args.days, args.team, args.category)
 

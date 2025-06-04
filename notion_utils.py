@@ -8,7 +8,7 @@ import datetime
 import json
 
 
-def get_database_items_id(Notion_API_Key, Database_Id, X_Days_Ago=None):
+def get_database_items_id(Notion_API_Key, Database_Id, X_Days_Ago=None, Team=None, Category=None):
     # ヘッダーを設定
     headers = {
         "Authorization": f"Bearer {Notion_API_Key}",
@@ -16,11 +16,63 @@ def get_database_items_id(Notion_API_Key, Database_Id, X_Days_Ago=None):
         "Notion-Version": "2022-06-28"
     }
 
+    # フィルタークエリを構築
+    filter_conditions = []
+    
+    # 日付フィルター
+    if X_Days_Ago is not None:
+        x_days_ago = (datetime.datetime.now() - datetime.timedelta(days=X_Days_Ago)).isoformat()
+        filter_conditions.append({
+            "property": "Created time",
+            "created_time": {
+                "on_or_after": x_days_ago
+            }
+        })
+    
+    # Teamフィルター
+    if Team is not None:
+        filter_conditions.append({
+            "property": "Team",
+            "select": {
+                "equals": Team
+            }
+        })
+    
+    # Categoryフィルター
+    if Category is not None:
+        filter_conditions.append({
+            "property": "Category",
+            "select": {
+                "equals": Category
+            }
+        })
+    
+    # クエリボディを構築
+    query_body = {}
+    if filter_conditions:
+        if len(filter_conditions) == 1:
+            query_body["filter"] = filter_conditions[0]
+        else:
+            query_body["filter"] = {
+                "and": filter_conditions
+            }
+    
+    # デバッグ用：フィルタークエリを表示
+    if filter_conditions:
+        print(f"🔍 フィルター適用中: {len(filter_conditions)}個の条件")
+        if Team:
+            print(f"  - Team: {Team}")
+        if Category:
+            print(f"  - Category: {Category}")
+        if X_Days_Ago:
+            print(f"  - 過去{X_Days_Ago}日間")
+
     try:
         # データベースをクエリするリクエスト
         response = requests.post(
             f"https://api.notion.com/v1/databases/{Database_Id}/query",
-            headers=headers
+            headers=headers,
+            json=query_body
         )
         
         # レスポンスを取得
@@ -81,12 +133,7 @@ def get_database_items_id(Notion_API_Key, Database_Id, X_Days_Ago=None):
     # DataFrameを作成
     df = pd.DataFrame(pages)
 
-    # 日付でフィルタリング
-    if X_Days_Ago is not None and not df.empty:
-        current_date = pd.Timestamp.now(tz='UTC')
-        x_days_ago = current_date - pd.Timedelta(days=X_Days_Ago)
-        df = df[pd.to_datetime(df['created_time']).between(x_days_ago, current_date)]
-
+    # APIクエリで既にフィルタリングされているため、追加の日付フィルタリングは不要
     return df
 
 def fetch_blocks(NOTION_API_KEY, page_id: str, page_size: int = 100):
@@ -128,8 +175,8 @@ def page_to_text(NOTION_API_KEY, page_id):
         
     return "\n".join(lines)
 
-def get_database_text(NOTION_API_KEY: str, DB_ID: str, X_DAYS_AGO: int = 7):
-    page_id_list = get_database_items_id(NOTION_API_KEY, DB_ID, X_DAYS_AGO)['page_id'].to_list()
+def get_database_text(NOTION_API_KEY: str, DB_ID: str, X_DAYS_AGO: int = 7, Team: str = None, Category: str = None):
+    page_id_list = get_database_items_id(NOTION_API_KEY, DB_ID, X_DAYS_AGO, Team, Category)['page_id'].to_list()
 
     text_list = []
     for page_id in page_id_list:
@@ -162,14 +209,14 @@ def post_page(notion_api_key, database_id, blocks_json, Team:str=None, Category:
                 "title": [
                     {
                         "text": {
-                            "content": f"AI進捗要約 {datetime.datetime.today().strftime('%Y/%m/%d')}"
+                            "content": f"AI-Summary {Team} {datetime.datetime.today().strftime('%Y/%m/%d')}"
                         }
                     }
                 ]
             },
             "From": {
                 "select": {
-                    "name": "openAI"
+                    "name": "OpenAI"
                 }
             },
             "Category": {
