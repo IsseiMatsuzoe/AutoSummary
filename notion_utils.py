@@ -112,10 +112,16 @@ def get_database_items_id(Notion_API_Key, Database_Id, X_Days_Ago=None, Team=Non
                     else:
                         title_text = title_array[0].get('plain_text', 'タイトルなし')
                     
+                    # 作成者情報を取得
+                    created_by_property = properties.get('Created by', {})
+                    created_by_info = created_by_property.get('created_by', {})
+                    created_by_name = created_by_info.get('name', '不明')
+                    
                     page_info = {
                         'title': title_text,
                         'page_id': result.get('id'),
-                        'created_time': result.get('created_time')
+                        'created_time': result.get('created_time'),
+                        'created_by': created_by_name
                     }
                     pages.append(page_info)
                 except Exception as e:
@@ -175,15 +181,51 @@ def page_to_text(NOTION_API_KEY, page_id):
         
     return "\n".join(lines)
 
+def page_to_text_with_metadata(NOTION_API_KEY, page_id, title, created_by, created_time):
+    """ページのテキストに作成者などのメタデータを含めて取得"""
+    blocks = fetch_blocks(NOTION_API_KEY, page_id)
+    lines = []
+    
+    # メタデータをテキストの先頭に追加
+    lines.append(f"📝 ページタイトル: {title}")
+    lines.append(f"👤 作成者: {created_by}")
+    lines.append(f"📅 作成日時: {created_time}")
+    lines.append("---")
+    
+    # ページ内容を追加
+    for blk in blocks:
+        text = extract_plain_text(blk).strip()
+        if text:
+            lines.append(text)
+        
+    return "\n".join(lines)
+
 def get_database_text(NOTION_API_KEY: str, DB_ID: str, X_DAYS_AGO: int = 7, Team: str = None, Category: str = None):
-    page_id_list = get_database_items_id(NOTION_API_KEY, DB_ID, X_DAYS_AGO, Team, Category)['page_id'].to_list()
+    page_data = get_database_items_id(NOTION_API_KEY, DB_ID, X_DAYS_AGO, Team, Category)
+    
+    if page_data.empty:
+        return "<|DOCUMENT|>\n(データが見つかりませんでした)\n<|DOCUMENT|>"
 
     text_list = []
-    for page_id in page_id_list:
-        text_list.append(page_to_text(NOTION_API_KEY, page_id))
+    for _, row in page_data.iterrows():
+        page_text = page_to_text_with_metadata(
+            NOTION_API_KEY, 
+            row['page_id'], 
+            row['title'], 
+            row['created_by'], 
+            row['created_time']
+        )
+        text_list.append(page_text)
     
     # 各テキストの間に区切り文字を挿入して結合
     combined_text = "<|DOCUMENT|>\n" + "\n<|DOCUMENT|>\n".join(text_list) + "\n<|DOCUMENT|>"
+    
+    # デバッグ用：最初の500文字を表示
+    print("🤖 ChatGPTに送信されるテキストの先頭部分:")
+    print("-" * 50)
+    print(combined_text[:500] + "..." if len(combined_text) > 500 else combined_text)
+    print("-" * 50)
+    
     return combined_text
 
 def post_page(notion_api_key, database_id, blocks_json, Team:str=None, Category:str=None):

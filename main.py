@@ -61,6 +61,7 @@ def show_team_progress(Team: str, X_DAYS_AGO: int, Category: str = None):
     
     for _, row in page_data.iterrows():
         print(f"📄 タイトル: {row['title']}")
+        print(f"👤 作成者: {row['created_by']}")
         print(f"📅 作成日時: {row['created_time']}")
         print(f"🔗 ページID: {row['page_id']}")
         print("-" * 30)
